@@ -1,7 +1,7 @@
 import asyncpg
 
-async def init_database(path_to_database: str):
-    db = await asyncpg.connect(path_to_database)
+async def init_database(DATABASE_URL: str):
+    db = await asyncpg.connect(DATABASE_URL)
     try:
         query = """ CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY,
@@ -9,7 +9,11 @@ async def init_database(path_to_database: str):
             lastname TEXT,
             phone TEXT,
             password TEXT
-        ) """
+        );
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+            phone TEXT,
+            token TEXT
+        ); """
         await db.execute(query)
     finally:
         await db.close()

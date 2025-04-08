@@ -3,23 +3,23 @@ import asyncio
 import bcrypt
 from dotenv import load_dotenv
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Body, Depends
 from fastapi.security import OAuth2PasswordBearer
 from db_interact import init_database
 from models import User, UserLogin
-from jwt_config import create_access_token, verify_token
+from jwt_config import create_access_token, create_refresh_token, decode_token
 import os
 
 load_dotenv()
 
 app = FastAPI()
-path_to_database = os.getenv("DATABASE_URL")
-asyncio.run(init_database(path_to_database))
+DATABASE_URL = os.getenv("DATABASE_URL")
+asyncio.run(init_database(DATABASE_URL))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @app.post('/register')
 async def register(user: User):
-    db = await asyncpg.connect(path_to_database)
+    db = await asyncpg.connect(DATABASE_URL)
     try:
         query = f""" SELECT phone FROM clients WHERE phone = $1 """
         row = await db.fetchrow(query, user.phone)
@@ -35,7 +35,7 @@ async def register(user: User):
 
 @app.post("/login")
 async def login(user: UserLogin):
-    db = await asyncpg.connect(path_to_database)
+    db = await asyncpg.connect(DATABASE_URL)
     try:
         query = "SELECT * FROM clients WHERE phone = $1"
         row = await db.fetchrow(query, user.phone)
@@ -46,19 +46,63 @@ async def login(user: UserLogin):
         if not bcrypt.checkpw(user.password.encode(), stored_password.encode()):
             raise HTTPException(status_code=401, detail="Invalid phone or password")
 
-        token = create_access_token({"sub": row["phone"]})
-        return {"access_token": token, "token_type": "bearer"}
+        access_token = create_access_token({"sub": row["phone"]})
+        refresh_token = create_refresh_token({"sub": row["phone"]})
+
+        query = "INSERT INTO refresh_tokens (phone, token) VALUES ($1, $2)"
+        await db.execute(query, row["phone"], refresh_token)
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+    finally:
+        await db.close()
+
+@app.post("/refresh")
+async def refresh_token(refresh_token: str=Body(..., embed=True)):
+    payload = decode_token(refresh_token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "SELECT * FROM refresh_tokens WHERE phone = $1 AND token = $2"
+        result = await db.fetchrow(query, payload["sub"], refresh_token)
+        if not result:
+            raise HTTPException(status_code=401, detail="Refresh token is not valid")
+
+        new_access_token = create_access_token({"sub": payload["sub"]})
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer"
+        }
+    finally:
+        await db.close()
+
+@app.post("/logout")
+async def logout(refresh_token: str=Body(..., embed=True)):
+    payload = decode_token(refresh_token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "DELETE FROM refresh_tokens WHERE phone = $1 AND token = $2"
+        await db.execute(query, payload["sub"], refresh_token)
+        return {"detail": "Successfully logged out"}
     finally:
         await db.close()
 
 async def get_current_user(token: str=Depends(oauth2_scheme)):
-    payload = verify_token(token)
+    payload = decode_token(token)
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return payload["sub"]
 
 @app.get("/me")
-async def read_current_user(user_phone: str = Depends(get_current_user)):
+async def read_current_user(user_phone: str=Depends(get_current_user)):
     return {"message": f"Hello, user with phone {user_phone}!"}
 
 uvicorn.run(app, host = '0.0.0.0', port = 8000)
