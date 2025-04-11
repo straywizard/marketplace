@@ -3,8 +3,9 @@ import asyncio
 import bcrypt
 from dotenv import load_dotenv
 import uvicorn
-from fastapi import FastAPI, HTTPException, Body, Depends
+from fastapi import FastAPI, HTTPException, Body, Depends, Query
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.staticfiles import StaticFiles
 from db_interact import init_database
 from models import User, UserLogin
 from jwt_config import create_access_token, create_refresh_token, decode_token
@@ -13,6 +14,7 @@ import os
 load_dotenv()
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 DATABASE_URL = os.getenv("DATABASE_URL")
 asyncio.run(init_database(DATABASE_URL))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -21,11 +23,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 async def register(user: User):
     db = await asyncpg.connect(DATABASE_URL)
     try:
-        query = f""" SELECT phone FROM clients WHERE phone = $1 """
+        query = "SELECT phone FROM clients WHERE phone = $1"
         row = await db.fetchrow(query, user.phone)
         if not row:
             hashed_password = bcrypt.hashpw(user.password.encode('utf-8'), bcrypt.gensalt())
-            query = f""" INSERT INTO clients (phone, name, lastname, password) VALUES ($1, $2, $3, $4) """
+            query = "INSERT INTO clients (phone, name, lastname, password) VALUES ($1, $2, $3, $4)"
             await db.execute(query, user.phone, user.name, user.lastname, hashed_password.decode('utf-8'))
             return {'message': 'User registered successfully'}
         else:
@@ -92,6 +94,34 @@ async def logout(refresh_token: str=Body(..., embed=True)):
         query = "DELETE FROM refresh_tokens WHERE phone = $1 AND token = $2"
         await db.execute(query, payload["sub"], refresh_token)
         return {"detail": "Successfully logged out"}
+    finally:
+        await db.close()
+
+@app.get("/products")
+async def get_products(
+    limit: int = Query(5, gt=0),
+    offset: int = Query(0, ge=0)
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = """
+            SELECT id, name, price, description, image_url
+            FROM products
+            ORDER BY id
+            LIMIT $1 OFFSET $2
+        """
+        rows = await db.fetch(query, limit, offset)
+        products = [dict(row) for row in rows]
+
+        total_count_query = "SELECT COUNT(*) FROM products"
+        total_count_result = await db.fetchval(total_count_query)
+
+        return {
+            "products": products,
+            "total_count": total_count_result,
+            "limit": limit,
+            "offset": offset
+        }
     finally:
         await db.close()
 
