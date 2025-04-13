@@ -25,6 +25,10 @@ async def get_current_user(token: str=Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return payload["sub"]
 
+@app.get("/")
+async def cron_handler():
+    return {"message": "Welcome to my API"}
+
 @app.get("/me")
 async def read_current_user(user_phone: str=Depends(get_current_user)):
     return {"message": f"Hello, user with phone {user_phone}!"}
