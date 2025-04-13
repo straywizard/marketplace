@@ -37,13 +37,13 @@ struct CartView: View {
                         .aspectRatio(1, contentMode: .fit)
                         .cornerRadius(15)
                         .padding(3)
-                        VStack {
+                        VStack(alignment: .leading) {
                             Text(ProductData.ProductList[index].name)
                             Text("\(ProductData.ProductList[index].price)$")
                         }
                         Spacer()
                         Button {} label: {
-                            Image(systemName: "basket")
+                            Image(systemName: "trash")
                                 .foregroundColor(.white)
                         }
                         .buttonStyle(.borderedProminent)
