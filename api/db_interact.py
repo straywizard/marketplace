@@ -21,9 +21,20 @@ async def init_database(DATABASE_URL: str):
         INSERT INTO products (name, price, description, image_url) VALUES
         ('Ноутбук ASUS VivoBook', 74990.00, 'Лёгкий и быстрый ноутбук для повседневной работы', 'http://0.0.0.0:8000/static/images/tmp.jpg'),
         ('Наушники Sony WH-1000XM4', 29990.00, 'Беспроводные наушники с шумоподавлением', 'http://0.0.0.0:8000/static/images/tmp.jpg'),
-        ('Смартфон IPhone 14', 99990.00, 'Флагман Apple с мощным процессором и отличной камерой', 'http://0.0.0.0:8000/static/images/tmp.jpg')
+        ('Смартфон IPhone 14', 99990.00, 'Флагман Apple с мощным процессором и отличной камерой', 'http://0.0.0.0:8000/static/images/tmp.jpg'),
+        ('Тёма', 1.00, 'ШТО', 'http://0.0.0.0:8000/static/images/tmp.jpg')
         ON CONFLICT DO NOTHING;
 
+        CREATE TABLE IF NOT EXISTS cart (
+            user_phone TEXT,
+            product_id INT,
+            UNIQUE(user_phone, product_id)
+        );
+        CREATE TABLE IF NOT EXISTS favourite (
+            user_phone TEXT,
+            product_id INT,
+            UNIQUE(user_phone, product_id)
+        );
         CREATE TABLE IF NOT EXISTS refresh_tokens (
             phone TEXT,
             token TEXT

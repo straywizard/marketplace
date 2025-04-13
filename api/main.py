@@ -19,6 +19,16 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 asyncio.run(init_database(DATABASE_URL))
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+async def get_current_user(token: str=Depends(oauth2_scheme)):
+    payload = decode_token(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload["sub"]
+
+@app.get("/me")
+async def read_current_user(user_phone: str=Depends(get_current_user)):
+    return {"message": f"Hello, user with phone {user_phone}!"}
+
 @app.post('/register')
 async def register(user: User):
     db = await asyncpg.connect(DATABASE_URL)
@@ -100,18 +110,28 @@ async def logout(refresh_token: str=Body(..., embed=True)):
 @app.get("/products")
 async def get_products(
     limit: int = Query(5, gt=0),
-    offset: int = Query(0, ge=0)
+    offset: int = Query(0, ge=0),
+    user_phone: str = Depends(get_current_user)
 ):
     db = await asyncpg.connect(DATABASE_URL)
     try:
-        query = """
-            SELECT id, name, price, description, image_url
-            FROM products
-            ORDER BY id
-            LIMIT $1 OFFSET $2
-        """
+        query = "SELECT * FROM products LIMIT $1 OFFSET $2"
         rows = await db.fetch(query, limit, offset)
-        products = [dict(row) for row in rows]
+        products = []
+
+        for row in rows:
+            in_cart = await db.fetchval("SELECT 1 FROM cart WHERE user_phone = $1 AND product_id = $2", user_phone, row["id"])
+            in_fav = await db.fetchval("SELECT 1 FROM favourite WHERE user_phone = $1 AND product_id = $2", user_phone, row["id"])
+
+            products.append({
+                "id": row["id"],
+                "name": row["name"],
+                "price": row["price"],
+                "image": row["image_url"],
+                "description": row["description"],
+                "isInCart": bool(in_cart),
+                "isFavourite": bool(in_fav)
+            })
 
         total_count_query = "SELECT COUNT(*) FROM products"
         total_count_result = await db.fetchval(total_count_query)
@@ -125,14 +145,90 @@ async def get_products(
     finally:
         await db.close()
 
-async def get_current_user(token: str=Depends(oauth2_scheme)):
-    payload = decode_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return payload["sub"]
+@app.post("/cart/add")
+async def add_to_cart(
+    product_id: int,
+    user_phone: str = Depends(get_current_user)
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "INSERT INTO cart (user_phone, product_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        await db.execute(query, user_phone, product_id)
+        return {"detail": "Product added to cart"}
+    finally:
+        await db.close()
 
-@app.get("/me")
-async def read_current_user(user_phone: str=Depends(get_current_user)):
-    return {"message": f"Hello, user with phone {user_phone}!"}
+@app.delete("/cart/remove")
+async def remove_from_cart(
+    product_id: int,
+    user_phone: str = Depends(get_current_user)
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "DELETE FROM cart WHERE user_phone = $1 AND product_id = $2"
+        await db.execute(query, user_phone, product_id)
+        return {"detail": "Product removed from cart"}
+    finally:
+        await db.close()
+
+
+@app.post("/favourite/add")
+async def add_to_favourite(
+    product_id: int,
+    user_phone: str = Depends(get_current_user)
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "INSERT INTO favourite (user_phone, product_id) VALUES ($1, $2) ON CONFLICT DO NOTHING"
+        await db.execute(query, user_phone, product_id)
+        return {"detail": "Product added to favourites"}
+    finally:
+        await db.close()
+
+@app.delete("/favourite/remove")
+async def remove_from_favourite(
+    product_id: int,
+    user_phone: str = Depends(get_current_user)
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "DELETE FROM favourite WHERE user_phone = $1 AND product_id = $2"
+        await db.execute(query, user_phone, product_id)
+        return {"detail": "Product removed from favourites"}
+    finally:
+        await db.close()
+
+@app.get("/cart")
+async def get_cart(user_phone: str = Depends(get_current_user)):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = """
+            SELECT p.*, TRUE AS isInCart, 
+                   (SELECT TRUE FROM favourite f WHERE f.product_id = p.id AND f.user_phone = $1) AS isFavourite
+            FROM products p
+            JOIN cart c ON p.id = c.product_id
+            WHERE c.user_phone = $1
+        """
+        rows = await db.fetch(query, user_phone)
+        return [dict(row) for row in rows]
+    finally:
+        await db.close()
+
+@app.get("/favourite")
+async def get_favourites(user_phone: str = Depends(get_current_user)):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = """
+            SELECT p.*, 
+                   (SELECT TRUE FROM cart ct WHERE ct.product_id = p.id AND ct.user_phone = $1) AS isInCart,
+                   TRUE AS isFavourite
+            FROM products p
+            JOIN favourite f ON p.id = f.product_id
+            WHERE f.user_phone = $1
+        """
+        rows = await db.fetch(query, user_phone)
+        return [dict(row) for row in rows]
+    finally:
+        await db.close()
 
 uvicorn.run(app, host = '0.0.0.0', port = 8000)
