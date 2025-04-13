@@ -26,15 +26,35 @@ struct CartView: View {
     @Binding var selectedTab: Int
     @Binding var ProductData: Products
     var body: some View {
-                List {
-                    ForEach(ProductData.ProductList.indices, id: \.self) { index in
-                        if (ProductData.ProductList[index].isInCart == true) {
+        List(ProductData.ProductList.indices, id: \.self) { index in            
+                if (ProductData.ProductList[index].isInCart == true) {
+                    HStack {
+                        Image(ProductData.ProductList[index].image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 100, height: 70)
+                        .clipped()
+                        .aspectRatio(1, contentMode: .fit)
+                        .cornerRadius(15)
+                        .padding(3)
+                        VStack {
                             Text(ProductData.ProductList[index].name)
+                            Text("\(ProductData.ProductList[index].price)$")
                         }
+                        Spacer()
+                        Button {} label: {
+                            Image(systemName: "basket")
+                                .foregroundColor(.white)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.roundedRectangle(radius: 5))
+                        .tint(Color.red)
                     }
                 }
+            }
+        }
     }
-}
+
 
 #Preview(traits: .sizeThatFitsLayout) {
     CartView(selectedTab: .constant(3), ProductData: .constant(Products()))
