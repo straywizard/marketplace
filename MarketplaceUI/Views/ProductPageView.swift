@@ -22,6 +22,7 @@ struct ProductPageView: View {
                     
             }
             Text(ProductData.description)
+            Text("\(ProductData.productID)")
         }
     }
 }
