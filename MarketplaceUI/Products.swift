@@ -7,9 +7,6 @@
 import Foundation
 import Observation
 
-
-
-
 struct Product {
     //let id: UUID = UUID()
     var name: String = "-"
@@ -23,7 +20,6 @@ struct Product {
 
     }
     
-
 @Observable
 class Products {
         var ProductList: [Product] = [
@@ -35,7 +31,4 @@ class Products {
     ]
 }
 
-@Observable
-class Cart {
-    var cartList: [Product] = []
-}
+

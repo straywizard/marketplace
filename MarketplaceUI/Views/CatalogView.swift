@@ -29,3 +29,15 @@ struct CatalogView: View {
 #Preview(traits: .sizeThatFitsLayout) {
     CatalogView(ProductData: .constant(Products()), selectedTab: .constant(2))
 }
+
+
+func indexOfID(_ array: [Product], _ id: Int) -> Int {
+   var index = 0
+   for product in array {
+       if product.productID == id {
+           index = product.productID
+           break
+       }
+   }
+   return index
+}

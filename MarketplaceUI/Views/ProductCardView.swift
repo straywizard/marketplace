@@ -41,11 +41,9 @@ struct ProductCardView: View {
                                     .overlay {
                                         RoundedRectangle(cornerRadius: 5, style: .circular).fill(Color.secondary)
                                             .opacity(0.15)
-                                    }
+                                }
                             }
-                            
                         })
-                        
                     }
                     HStack {
                         Button(action: {ProductData.ProductList[index].isInCart.toggle()}) {
@@ -79,3 +77,6 @@ struct ProductCardView: View {
         }
     }
 }
+
+
+
