@@ -11,6 +11,7 @@ import Observation
 struct ContentView: View {
     @State private var ProductData = Products()
     @State private var selectedTab = 0
+    @State private var login = Auth()
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house", value: 0) {
@@ -28,7 +29,11 @@ struct ContentView: View {
             }
                 .badge(badgeCount(ProductData.ProductList))
             Tab("Profile", systemImage: "person", value: 3) {
-
+                if login.isLoggedIn == true {
+                    ProfileView()
+                } else {
+                    LoginScreen(login: $login)
+                }
             }
             .badge("!")
         }
