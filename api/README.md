@@ -67,6 +67,9 @@ offset — с какого товара будет начинаться выб�
   "offset": i
 }
 ```
+## GET /products/public?limit=5&offset=0
+Выполняет ту же функцию, что и `/products`, но не принимает access токен.  
+Соответственно isInCart и isFavourite всегда false.
 ## POST /cart/add?product_id=i
 **Принимает в заголовке http запроса access токен.**  
 ## DELETE /cart/remove?product_id=i
