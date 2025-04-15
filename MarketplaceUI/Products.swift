@@ -19,9 +19,18 @@ struct Product {
     var isFavourite: Bool = false
 
     }
+
+struct Credentials {
+    var phoneNumber: String = ""
+    var password: String = ""
+}
+
+@Observable class Auth {
+    var loginData = Credentials()
+    var isLoggedIn: Bool = false
+}
     
-@Observable
-class Products {
+@Observable class Products {
         var ProductList: [Product] = [
             Product(name: "IPhone SE 2020", price: "250", image: "iphonese", productID: 111111),
             Product(name: "MacBook M2", price: "1000", image: "macbookm2", description: "soyboy attribute", productID: 222222),

@@ -41,14 +41,10 @@ struct CartView: View {
                             Text(ProductData.ProductList[index].name)
                             Text("\(ProductData.ProductList[index].price)$")
                         }
-                        Spacer()
-                        Button {ProductData.ProductList[index].isInCart.toggle()} label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.white)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.roundedRectangle(radius: 5))
-                        .tint(Color.red)
+                    }
+                    .swipeActions(edge: .trailing) {
+                        Button("", systemImage: "trash") {ProductData.ProductList[index].isInCart.toggle()}
+                            .tint(Color.red)
                     }
                 }
             }
