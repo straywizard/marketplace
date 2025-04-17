@@ -111,6 +111,40 @@ async def logout(refresh_token: str=Body(..., embed=True)):
     finally:
         await db.close()
 
+@app.get("/products/public")
+async def get_products(
+    limit: int = Query(5, gt=0),
+    offset: int = Query(0, ge=0),
+):
+    db = await asyncpg.connect(DATABASE_URL)
+    try:
+        query = "SELECT * FROM products LIMIT $1 OFFSET $2"
+        rows = await db.fetch(query, limit, offset)
+        products = []
+
+        for row in rows:
+            products.append({
+                "id": row["id"],
+                "name": row["name"],
+                "price": row["price"],
+                "image": row["image_url"],
+                "description": row["description"],
+                "isInCart": False,
+                "isFavourite": False
+            })
+
+        total_count_query = "SELECT COUNT(*) FROM products"
+        total_count_result = await db.fetchval(total_count_query)
+
+        return {
+            "products": products,
+            "total_count": total_count_result,
+            "limit": limit,
+            "offset": offset
+        }
+    finally:
+        await db.close()
+
 @app.get("/products")
 async def get_products(
     limit: int = Query(5, gt=0),
