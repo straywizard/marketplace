@@ -22,11 +22,11 @@ struct ProductPageView: View {
                     
             }
             Text(ProductData.description)
-            Text("\(ProductData.productID)")
+            Text("\(ProductData.id)")
         }
     }
 }
 
 #Preview(traits: .sizeThatFitsLayout) {
-    ProductPageView(ProductData: Product(name: "IPhone SE 2020", price: "250", image: "iphonese", productID: 111111))
+    ProductPageView(ProductData: Product(id: 111111, name: "IPhone SE 2020", price: "250", image: "iphonese"))
 }

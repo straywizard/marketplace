@@ -8,28 +8,29 @@
 import SwiftUI
 import Observation
 
-struct ContentView: View {
+struct AppView: View {
+    
     @State private var ProductData = Products()
     @State private var selectedTab = 0
     @State private var login = Auth()
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house", value: 0) {
-            HomeView(selectedTab: $selectedTab)
+                HomeView(selectedTab: $selectedTab)
             }
+            
             Tab("Catalog", systemImage: "magnifyingglass", value: 1) {
                 CatalogView(ProductData: $ProductData, selectedTab: $selectedTab)
             }
+            
             Tab("Cart", systemImage: "cart", value: 2) {
-                if ifCartIsFull(ProductData.ProductList) == true {
-                    CartView(selectedTab: $selectedTab, ProductData: $ProductData)
-                } else {
-                    EmptyCartView(selectedTab: $selectedTab, ProductData: $ProductData)
-                }
+                CartView(selectedTab: $selectedTab, ProductData: $ProductData)
             }
-                .badge(badgeCount(ProductData.ProductList))
+            .badge(badgeCount(ProductData.ProductList))
+            
             Tab("Profile", systemImage: "person", value: 3) {
-                if login.isLoggedIn == true {
+                if login.isLoggedIn {
                     ProfileView()
                 } else {
                     LoginScreen(login: $login)
@@ -38,29 +39,29 @@ struct ContentView: View {
             .badge("!")
         }
     }
+    
+    func badgeCount(_ array: [Product]) -> Int {
+        var count = 0
+        for i in array {
+            if i.isInCart {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    func ifCartIsFull(_ array: [Product]) -> Bool {
+        var isfull = false
+        for i in array {
+            if i.isInCart {
+                isfull = true
+                break
+            }
+        }
+        return isfull
+    }
 }
 
 #Preview {
-    ContentView()
-}
-
-func badgeCount (_ array: [Product]) -> Int {
-    var count = 0
-    for i in array{
-        if i.isInCart == true {
-            count += 1
-        }
-    }
-    return count
-}
-
-func ifCartIsFull (_ array: [Product]) -> Bool {
-    var isfull = false
-    for i in array {
-        if i.isInCart == true {
-            isfull = true
-            break
-        }
-    }
-    return isfull
+    AppView()
 }

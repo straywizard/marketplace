@@ -4,32 +4,29 @@
 //
 //  Created by Ivan Loktionov on 08.04.2025.
 //
+
 import SwiftUI
 
-struct EmptyCartView: View {
-    @Binding var selectedTab: Int
-    @Binding var ProductData: Products
-    var body: some View {
-        VStack {
-            Text("Seems like you don't have any items here yet.")
-                .padding()
-                .font(.headline)
-            Button("Go to catalog") {
-                selectedTab = 1
-            }
-        }
-    }
-}
-
-
 struct CartView: View {
+    
     @Binding var selectedTab: Int
     @Binding var ProductData: Products
+    
     var body: some View {
-        List(ProductData.ProductList.indices, id: \.self) { index in            
-                if (ProductData.ProductList[index].isInCart == true) {
-                    HStack {
-                        Image(ProductData.ProductList[index].image)
+        if ProductData.ProductList.isEmpty {
+            VStack {
+                Text("Seems like you don't have any items here yet.")
+                    .padding()
+                    .font(.headline)
+                
+                Button("Go to catalog") {
+                    selectedTab = 1
+                }
+            }
+        } else {
+            List($ProductData.ProductList, editActions: .delete) { $product in
+                HStack {
+                    Image(product.image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(width: 100, height: 70)
@@ -37,23 +34,17 @@ struct CartView: View {
                         .aspectRatio(1, contentMode: .fit)
                         .cornerRadius(15)
                         .padding(3)
-                        VStack(alignment: .leading) {
-                            Text(ProductData.ProductList[index].name)
-                            Text("\(ProductData.ProductList[index].price)$")
-                        }
-                    }
-                    .swipeActions(edge: .trailing) {
-                        Button("", systemImage: "trash") {ProductData.ProductList[index].isInCart.toggle()}
-                            .tint(Color.red)
+                    
+                    VStack(alignment: .leading) {
+                        Text(product.name)
+                        Text("\(product.price)$")
                     }
                 }
             }
         }
     }
-
+}
 
 #Preview(traits: .sizeThatFitsLayout) {
     CartView(selectedTab: .constant(3), ProductData: .constant(Products()))
 }
-
-
