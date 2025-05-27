@@ -1,1 +1,1 @@
-Всем привет, меня зовут Ваня, и я очень хочу разорить компанию OZON(761)
+Marketplace app for IOS, featuring backend based on FastAPI framework
